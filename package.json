@@ -3,7 +3,7 @@
   "private": true,
   "description": "Kesh: an iOS app that runs React Native plugins written by Claude Code on your Mac.",
   "license": "MIT",
-  "author": "Pouya Mozaffar",
+  "author": "Pouya Mozaffar Magham",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pmzi/Kesh.git"

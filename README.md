@@ -181,4 +181,4 @@ Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) fo
 
 ## License
 
-[MIT](LICENSE), copyright (c) 2026 Pouya Mozaffar.
+[MIT](LICENSE), copyright (c) 2026 Pouya Mozaffar Magham.
