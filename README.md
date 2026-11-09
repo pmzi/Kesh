@@ -16,7 +16,7 @@
 Kesh is an iPhone app that runs small apps ("plugins") written by Claude Code on your Mac. You describe a plugin in plain language, Claude writes it into a workspace folder, and a companion process bundles it and pushes it to your phone, where you review and install it. Edits hot-reload on the phone as Claude saves them, so you can shape an app while holding it. Everything runs on your own devices over your own network, using your own Claude Code login.
 
 <p align="center">
-  <img src="docs/media/hero.gif" alt="Pairing the app with the Mac, reviewing a plugin, installing it and opening it" width="720">
+  <img src="docs/media/hero.gif" alt="Pairing the app with the Mac, reviewing a plugin, installing it and opening it" height="600">
 </p>
 
 ## How it works
