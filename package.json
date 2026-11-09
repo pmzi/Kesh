@@ -1,0 +1,20 @@
+{
+  "name": "kesh-monorepo",
+  "private": true,
+  "description": "Kesh: an iOS app that runs React Native plugins written by Claude Code on your Mac.",
+  "license": "MIT",
+  "author": "Pouya Mozaffar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pmzi/Kesh.git"
+  },
+  "homepage": "https://github.com/pmzi/Kesh#readme",
+  "bugs": {
+    "url": "https://github.com/pmzi/Kesh/issues"
+  },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "companion": "npm run dev -w packages/companion",
+    "test": "npm test --workspaces --if-present"
+  }
+}

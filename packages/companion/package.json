@@ -1,0 +1,44 @@
+{
+  "name": "kesh",
+  "version": "0.1.0",
+  "description": "Kesh Mac companion: bundles plugins and pushes them to your iPhone",
+  "type": "module",
+  "bin": {
+    "kesh": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "template"
+  ],
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@babel/core": "^7.29.13",
+    "@babel/plugin-transform-block-scoping": "^7.29.13",
+    "bonjour-service": "^1.4.4",
+    "chokidar": "^5.0.0",
+    "commander": "^15.1.0",
+    "esbuild": "^0.28.2",
+    "fast-xml-parser": "^5.12.0",
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.22.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^26.6.6",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/ws": "^8.18.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

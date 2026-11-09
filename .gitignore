@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+apps/ios/node_modules/
+vendor/bundle/
+.bundle/
+
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+*.tgz
+
+# iOS / Xcode
+apps/ios/ios/Pods/
+apps/ios/ios/build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.ipa
+*.dSYM.zip
+*.dSYM
+.xcode.env.local
+**/.xcode.env.local
+*.mobileconfig
+*.p12
+*.mobileprovision
+
+# Android (template leftovers)
+apps/ios/android/build/
+apps/ios/android/app/build/
+.gradle/
+.cxx/
+local.properties
+
+# Metro / React Native caches
+.metro-cache/
+.expo/
+.watchman-cookie-*
+
+# Kesh local state (workspace, paired devices, plugin versions)
+.kesh/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Logs and temp files
+*.log
+npm-debug.log*
+yarn-error.log*
+/tmp/
+.tmp/
+*.tmp
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.claude/settings.local.json

@@ -1,0 +1,6 @@
+{
+  "id": "water-tracker",
+  "name": "Water",
+  "description": "Daily water goal ring with a one-tap glass counter.",
+  "permissions": ["haptics", "storage"]
+}
