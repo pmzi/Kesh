@@ -1,30 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { Linking, StatusBar, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Linking, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppProvider, useApp } from './src/state/AppState';
 import { colors } from './src/theme';
-import PairScreen from './src/screens/PairScreen';
+import ConnectionSheet from './src/screens/ConnectionSheet';
+import { launchRoute, sheetForUrl, type SheetState } from './src/state/connection';
 import HomeScreen from './src/screens/HomeScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
 import RunScreen from './src/screens/RunScreen';
 
-type Route = { name: 'home' } | { name: 'pair'; code?: string } | { name: 'run'; id: string };
+type Route = { name: 'home' } | { name: 'run'; id: string };
 
 function Root() {
   const app = useApp();
-  const [route, setRoute] = useState<Route>({ name: 'home' });
-  const [skipped, setSkipped] = useState(false);
+  const [route, setRoute] = useState<Route>(launchRoute(app));
+  const [sheet, setSheet] = useState<SheetState | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const insets = useSafeAreaInsets();
   useEffect(() => {
-    if (app.paired && route.name === 'pair') setRoute({ name: 'home' });
-  }, [app.paired, route.name]);
+    if (app.pending.length === 0) setReviewing(false);
+    else if (route.name !== 'run') setSheet(null);
+  }, [app.pending.length, route.name]);
   // Dev-only remote control so the simulator can be driven without UI automation.
   const devLink = (url: string) => {
     const [path, qs = ''] = url.slice('kesh://dev/'.length).split('?');
     const q = Object.fromEntries(qs.split('&').filter(Boolean).map(kv => { const [k, ...v] = kv.split('='); return [k, decodeURIComponent(v.join('='))]; }));
-    if (path === 'manual') setRoute({ name: 'pair', code: q.code });
+    if (path === 'manual') setSheet({ page: 'pair', code: q.code });
     else if (path === 'open') setRoute({ name: 'run', id: q.id });
     else if (path === 'home') setRoute({ name: 'home' });
-    else if (path === 'skip') { setSkipped(true); setRoute({ name: 'home' }); }
+    else if (path === 'sheet') setSheet({ page: 'status' });
     else if (path === 'sample') app.offerLocal(require('./src/plugins/fixture').FIXTURE);
     else if (path === 'ai-sample') app.offerLocal(require('./src/plugins/fixture').AI_FIXTURE);
     else if (path === 'install' && app.pending[0]) app.install(app.pending[0], app.pending[0].manifest.permissions);
@@ -36,7 +40,11 @@ function Root() {
     const h = (url: string | null | undefined) => {
       if (!url) return;
       if (__DEV__ && url.startsWith('kesh://dev/')) return devLinkRef.current(url);
-      app.pairWithUrl(url);
+      const s = sheetForUrl(url);
+      if (s) {
+        setRoute({ name: 'home' });
+        setSheet(s);
+      }
     };
     const sub = Linking.addEventListener('url', e => h(e.url));
     if (app.ready) Linking.getInitialURL().then(h);
@@ -60,13 +68,49 @@ function Root() {
   }, []);
   if (!app.ready) return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
 
-  if (app.pending.length > 0) return <ReviewScreen key={app.pending[0].manifest.id + app.pending[0].hash} plugin={app.pending[0]} />;
-  if ((!app.paired && !skipped) || route.name === 'pair') {
-    return <PairScreen initialCode={route.name === 'pair' ? route.code : undefined} onSkip={() => { setSkipped(true); setRoute({ name: 'home' }); }} />;
+  const pending = app.pending[0];
+  const running = route.name === 'run';
+  // A new plugin takes over the screen only from Home; while one is running it is a small banner.
+  if (pending && (!running || reviewing)) {
+    return <ReviewScreen key={pending.manifest.id + pending.hash} plugin={pending} />;
   }
-  if (route.name === 'run') return <RunScreen id={route.id} onBack={() => setRoute({ name: 'home' })} />;
-  return <HomeScreen onOpen={id => setRoute({ name: 'run', id })} onPair={() => setRoute({ name: 'pair' })} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.ground }}>
+      {route.name === 'run' ? (
+        <RunScreen id={route.id} onBack={() => setRoute({ name: 'home' })} />
+      ) : (
+        <HomeScreen onOpen={id => setRoute({ name: 'run', id })} onConnection={() => setSheet({ page: 'status' })} />
+      )}
+      {pending && running ? (
+        <Pressable
+          onPress={() => setReviewing(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`New plugin from your Mac: ${pending.manifest.name}. Review`}
+          style={[styles.banner, { top: insets.top + 4 }]}>
+          <Text style={styles.bannerText} numberOfLines={1}>
+            New plugin from your Mac: {pending.manifest.name} · <Text style={styles.bannerAction}>Review</Text>
+          </Text>
+        </Pressable>
+      ) : null}
+      <ConnectionSheet sheet={sheet} onClose={() => setSheet(null)} />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  banner: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: colors.accent,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+  },
+  bannerText: { color: colors.accentText, fontSize: 14, fontWeight: '500' },
+  bannerAction: { fontWeight: '700' },
+});
 
 export default function App() {
   return (

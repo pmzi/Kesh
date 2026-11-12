@@ -72,9 +72,9 @@ export default function RunScreen({ id, onBack }: { id: string; onBack: () => vo
         )}
       </View>
       <View style={styles.footer}>
-        <Dot size={6} />
+        <Dot size={6} color={app.status === 'connected' ? colors.accent : colors.muted} />
         <Text style={styles.footText}>
-          Live from your Mac · edited {rec ? ago(rec.updatedAt, now) : '—'}
+          {app.status === 'connected' ? 'Live from your Mac' : 'Offline'} · edited {rec ? ago(rec.updatedAt, now) : '—'}
         </Text>
       </View>
     </SafeAreaView>

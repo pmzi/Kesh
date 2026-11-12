@@ -90,13 +90,13 @@ A Debug build loads its JavaScript from Metro, so the phone must be able to reac
 
 ## 4. Pair
 
-Open Kesh. On first launch it asks for the pairing code.
+Open Kesh. It opens straight to your plugin list and does not need a Mac. To connect, tap the pill at the top right ("Connect" until you have paired), choose "Pair a new Mac", then give it the pairing code.
 
 - **Scan:** point the camera at the QR code in your terminal. Allow Camera access, and allow Local Network access when iOS asks. QR scanning is implemented and was checked by hand on a real iPhone, but is not covered by automated tests.
 - **Type it:** tap "Enter code instead" and paste the `kesh://pair?...` URL.
 - **Camera app:** on a real phone you can also scan the QR with the stock Camera app; it offers to open Kesh.
 
-The companion prints `device connected: <your phone's name> (newly paired)`. From now on the phone reconnects by itself using a stored device key. Bonjour auto-discovery is not implemented, so the phone always connects to the host and port it was paired with.
+The companion prints `device connected: <your phone's name> (newly paired)`. From now on the phone reconnects in the background using a stored device key; the pill shows "Offline" when the Mac is not reachable, and "Disconnect" in the same sheet keeps it offline until you tap Connect. Bonjour auto-discovery is not implemented, so the phone always connects to the host and port it was paired with.
 
 ## 5. Make a plugin
 
@@ -122,7 +122,7 @@ To try the examples, copy any folder from [examples/plugins](../examples/plugins
 | Companion says `waiting for devices...` and nothing happens | The phone has not connected. Check that it is on the same Wi-Fi as the Mac, that you paired, and that Local Network access is allowed for Kesh. Watch the companion output for `rejected:` lines. |
 | Phone and Mac are on different Wi-Fi networks, or a guest network | The phone cannot reach the Mac. Join the same network. Guest networks and some routers block device-to-device traffic ("client isolation"). Corporate or VPN setups may also block it. |
 | Local Network permission denied | iOS silently blocks connections to your Mac. On the phone: Settings, Kesh, turn on Local Network. If Kesh is not listed, delete the app, reinstall it, and allow the prompt. |
-| It worked yesterday, now it is stuck on "connecting" or shows an error | The companion port changes on every start, and the phone remembers the old one. Re-pair: open the new pairing URL or scan the new QR with the iPhone Camera app (it hands the link to Kesh), or use "Enter code instead". Use `--port` to keep a fixed port. |
+| It worked yesterday, now it is shows "Offline" or "Connecting…" for a long time | The companion port changes on every start, and the phone remembers the old one. Re-pair: open the new pairing URL or scan the new QR with the iPhone Camera app (it hands the link to Kesh), or tap the pill, "Pair a new Mac", "Enter code instead". Use `--port` to keep a fixed port. |
 | `bad_token` / "invalid or already used pairing token" | The token is single-use and only valid for the companion run that printed it. Restart the companion and pair with the new QR. |
 | `bad_device_key` / "unknown device key; re-pair" | The Mac forgot this device (for example after `kesh unpair` or deleting `~/.kesh/config.json`). Re-pair. |
 | Install to the iPhone fails because the phone is locked | Unlock the phone and keep it awake, then run again. Xcode cannot launch an app on a locked device. |

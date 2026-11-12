@@ -44,7 +44,7 @@ From left: the plugin list with each plugin's own icon, the review screen where 
 - Plugins are plain React Native components (`index.tsx`) with a `manifest.json` and an `icon.svg`. Claude Code writes them from a workspace that ships its own `CLAUDE.md` with the rules.
 - Hot reload: each save is rebuilt and pushed; the phone swaps the running plugin.
 - Per-plugin permissions (`haptics`, `storage`, `clipboard`, `notifications`, `ai`), reviewed and toggled by you at install time.
-- Pairing by scanning a QR code from the terminal, or by typing the `kesh://` URL. The device then reconnects with a stored key.
+- The app opens without a Mac and installed plugins run offline. You connect from the pill at the top right: pair by scanning a QR code from the terminal, or by typing the `kesh://` URL. The device then reconnects in the background with a stored key.
 - AI for plugins: Apple's on-device model, or Claude through the Claude Code already logged in on your Mac. Optional structured output.
 - A small design system (`theme`) and a strict icon pipeline (SVG allowlist sanitizer).
 - If a build fails, the companion keeps the last good bundle and prints the error. The app also stores the previous installed version of each plugin (there is no rollback screen yet).
@@ -75,7 +75,7 @@ open ios/Kesh.xcworkspace        # then press Run in Xcode
 
 - **Simulator:** choose an iPhone simulator and run. The Simulator has no camera: pair by typing the URL (tap "Enter code instead" in the app and paste the `kesh://pair?...` line).
 - **Real iPhone, free Apple ID:** in Xcode, select the Kesh target, Signing & Capabilities, tick "Automatically manage signing", pick your personal team and change the bundle identifier (the default `com.pouya.kesh` belongs to the author) to something unique. On the phone enable Developer Mode (Settings, Privacy & Security, Developer Mode, then restart), run from Xcode, then trust the profile (Settings, General, VPN & Device Management). Free signing expires after 7 days: run again from Xcode to renew.
-- **Pair:** open Kesh and scan the QR from the terminal (allow Camera and Local Network access), or enter the URL. The Mac and phone must be on the same Wi-Fi.
+- **Pair:** open Kesh (it needs no Mac to start), tap the pill at the top right, choose "Pair a new Mac", and scan the QR from the terminal (allow Camera and Local Network access), or enter the URL. The Mac and phone must be on the same Wi-Fi.
 - **Build something:**
 
 ```bash

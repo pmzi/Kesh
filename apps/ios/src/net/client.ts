@@ -34,14 +34,19 @@ export interface ClientEvents {
   onSnapshot(plugins: PluginPayload[]): void;
   onPlugin(plugin: PluginPayload): void;
   onRemoved(id: string): void;
+  /** Stored credentials were rejected and have been cleared. */
+  onUnpaired?(): void;
 }
 
 interface Saved {
   host: string;
   port: number;
   deviceKey: string;
+  macName?: string;
 }
 const KEY = 'kesh:connection';
+/** Set while the user chose "Disconnect": no auto-reconnect until they connect again. */
+export const OFFLINE_KEY = 'kesh:offline';
 export const AI_TIMEOUT_MS = 100_000;
 
 function uuid(): string {
@@ -56,11 +61,14 @@ export class KeshClient {
   private target?: { host: string; port: number };
   private token?: string;
   private deviceKey?: string;
+  private macName?: string;
   private attempt = 0;
   private timer?: ReturnType<typeof setTimeout>;
   private stopped = true;
   private isReady = false;
   private claude = false;
+  private wanted = false;
+  private paused = false;
   private pendingAi = new Map<
     string,
     { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
@@ -68,34 +76,72 @@ export class KeshClient {
 
   constructor(private ev: ClientEvents, private deviceName = 'iPhone') {}
 
-  /** Load saved pairing; returns true if one exists (and connects). */
-  async resume(): Promise<boolean> {
+  /**
+   * Load the saved pairing. Never waits on the network. Starts a silent
+   * background connect unless the user chose "Disconnect" earlier.
+   */
+  async resume(): Promise<{ paired: boolean; macName?: string; offlineByChoice: boolean }> {
     try {
       const raw = await AsyncStorage.getItem(KEY);
-      if (!raw) return false;
+      if (!raw) return { paired: false, offlineByChoice: false };
       const s = JSON.parse(raw) as Saved;
       this.target = { host: s.host, port: s.port };
       this.deviceKey = s.deviceKey;
-      this.start();
-      return true;
+      this.macName = s.macName;
+      const offlineByChoice = (await AsyncStorage.getItem(OFFLINE_KEY).catch(() => null)) === '1';
+      if (!offlineByChoice) this.start();
+      return { paired: true, macName: s.macName, offlineByChoice };
     } catch {
-      return false;
+      return { paired: false, offlineByChoice: false };
     }
   }
 
   pair(info: PairInfo) {
     this.stop();
+    AsyncStorage.removeItem(OFFLINE_KEY).catch(() => {});
     this.target = { host: info.host, port: info.port };
     this.token = info.token;
     this.deviceKey = undefined;
+    this.macName = undefined;
     this.start();
+  }
+
+  /** User tapped Connect: clear the offline choice and connect now. */
+  async connectNow() {
+    await AsyncStorage.removeItem(OFFLINE_KEY).catch(() => {});
+    if (!this.target) return;
+    this.stop();
+    this.start();
+  }
+
+  /** User tapped Disconnect: stay offline (persisted) but keep the pairing. */
+  async disconnect() {
+    await AsyncStorage.setItem(OFFLINE_KEY, '1').catch(() => {});
+    this.stop();
   }
 
   async forget() {
     this.stop();
+    this.target = undefined;
     this.deviceKey = undefined;
     this.token = undefined;
-    await AsyncStorage.removeItem(KEY);
+    this.macName = undefined;
+    await AsyncStorage.removeItem(KEY).catch(() => {});
+    await AsyncStorage.removeItem(OFFLINE_KEY).catch(() => {});
+  }
+
+  /** App went to the background: drop the socket quietly, keep intent to reconnect. */
+  pause() {
+    if (!this.wanted) return;
+    this.paused = true;
+    this.halt();
+  }
+
+  /** App is foregrounded again: reconnect if we were connecting/connected before. */
+  wake() {
+    if (!this.paused) return;
+    this.paused = false;
+    if (this.wanted && this.target) this.start();
   }
 
   /** True once the Mac has answered `hello` on the live socket. */
@@ -130,12 +176,20 @@ export class KeshClient {
   }
 
   private start() {
+    this.wanted = true;
+    this.paused = false;
     this.stopped = false;
     this.attempt = 0;
     this.connect();
   }
 
   stop() {
+    this.wanted = false;
+    this.paused = false;
+    this.halt();
+  }
+
+  private halt() {
     this.stopped = true;
     this.isReady = false;
     this.claude = false;
@@ -206,8 +260,9 @@ export class KeshClient {
           this.deviceKey = m.deviceKey;
           this.token = undefined;
         }
+        this.macName = m.macName;
         if (this.deviceKey && this.target) {
-          const s: Saved = { ...this.target, deviceKey: this.deviceKey };
+          const s: Saved = { ...this.target, deviceKey: this.deviceKey, macName: m.macName };
           try {
             await AsyncStorage.setItem(KEY, JSON.stringify(s));
           } catch {}
@@ -220,7 +275,10 @@ export class KeshClient {
         if (m.code === 'bad_device_key' || m.code === 'bad_token') {
           // Credentials are dead; stop retrying and require re-pairing.
           this.stopped = true;
+          this.wanted = false;
+          this.target = undefined;
           await AsyncStorage.removeItem(KEY).catch(() => {});
+          this.ev.onUnpaired?.();
         }
         this.ev.onStatus('error', m.message);
         break;

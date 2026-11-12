@@ -1,3 +1,4 @@
+import { AppState as RNAppState } from 'react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Permission, PluginPayload } from '../protocol';
 import { KeshClient, type ConnStatus, parsePairUrl } from '../net/client';
@@ -19,7 +20,13 @@ interface Ctx {
   remove(id: string): Promise<void>;
   offerLocal(p: PluginPayload): void;
   log(id: string, level: 'info' | 'warn' | 'error', message: string): void;
+  /** True when the user chose Disconnect and has not connected again. */
+  offlineByChoice: boolean;
+  /** Last pairing rejection from the Mac, if any. */
+  pairError?: string;
+  connect(): Promise<void>;
   disconnect(): Promise<void>;
+  forgetMac(): Promise<void>;
 }
 
 const C = createContext<Ctx>(null as any);
@@ -34,6 +41,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pending, setPending] = useState<PluginPayload[]>([]);
   const [hotAt, setHot] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
+  const [offlineByChoice, setOffline] = useState(false);
 
   const store = useMemo(() => {
     const { fs, root } = rnFs();
@@ -86,6 +94,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       onSnapshot: ps => ps.forEach(p => handlePushRef.current(p)),
       onPlugin: p => handlePushRef.current(p),
+      onUnpaired: () => {
+        setPaired(false);
+        setMac(undefined);
+      },
       onRemoved: async id => {
         installedRef.current.delete(id);
         setPending(prev => prev.filter(x => x.manifest.id !== id));
@@ -105,13 +117,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {}
       if (!alive) return;
       publish();
-      const p = await client.resume();
-      setPaired(p);
+      // resume() only reads storage; any reconnect runs in the background.
+      const r = await client.resume();
+      if (!alive) return;
+      setPaired(r.paired);
+      setMac(r.macName);
+      setOffline(r.offlineByChoice);
       setReady(true);
     })();
+    const appSub = RNAppState.addEventListener('change', st => {
+      if (st === 'active') client.wake();
+      else if (st === 'background') client.pause();
+    });
     return () => {
       alive = false;
       setAiRemote(undefined);
+      appSub.remove();
       client.stop();
     };
   }, [store, publish]);
@@ -125,10 +146,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     pending,
     hotAt,
     ready,
+    offlineByChoice,
+    pairError: !paired && status === 'error' ? statusDetail : undefined,
     pairWithUrl: url => {
       const info = parsePairUrl(url);
       if (!info) return 'That does not look like a kesh://pair link.';
       clientRef.current.pair(info);
+      setOffline(false);
       setPaired(true);
       return null;
     },
@@ -156,8 +180,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     offerLocal: p => setPending(prev => [...prev.filter(x => x.manifest.id !== p.manifest.id), p]),
     log: (id, level, message) => clientRef.current?.send({ type: 'log', id, level, message }),
+    connect: async () => {
+      setOffline(false);
+      await clientRef.current.connectNow();
+    },
     disconnect: async () => {
+      setOffline(true);
+      await clientRef.current.disconnect();
+    },
+    forgetMac: async () => {
       await clientRef.current.forget();
+      setOffline(false);
       setPaired(false);
       setMac(undefined);
     },

@@ -13,7 +13,12 @@ export const Dot = ({ color = colors.accent, size = 7 }: { color?: string; size?
 );
 
 export const TextButton = ({ label, onPress, accent }: { label: string; onPress: () => void; accent?: boolean }) => (
-  <Pressable onPress={onPress} hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+  <Pressable
+    onPress={onPress}
+    hitSlop={12}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, minHeight: 44, justifyContent: 'center' })}>
     <Text style={[styles.textButton, accent && { color: colors.accent, fontWeight: '600' }]}>{label}</Text>
   </Pressable>
 );
@@ -22,6 +27,8 @@ export const PillButton = ({ label, onPress, disabled }: { label: string; onPres
   <Pressable
     onPress={onPress}
     disabled={disabled}
+    accessibilityRole="button"
+    accessibilityLabel={label}
     style={({ pressed }) => [styles.pill, { opacity: disabled ? 0.4 : pressed ? 0.85 : 1 }]}>
     <Text style={styles.pillText}>{label}</Text>
   </Pressable>
